@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title id="pageTitle"></title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">    
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    </head>
+    <body>
+        <div class="container mt-4">
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+            </div>
+
+            <div class="mt-4">
+                <div id="question">Data not loaded.</div>
+                <div class="form-check">
+                    <div id="answers"></div>
+                </div>
+            </div>
+
+            <div class="justify-content-between mt-4 d-none" id="move-container">
+                <button class="btn btn-link" id="buttonPrevious" onclick="changeQuestion(-1)">&laquo; Previous</button>
+                <button class="btn btn-success" id="buttonNext" onclick="changeQuestion(+1)">Next &raquo;</button>
+            </div>
+
+            <hr class="hr mt-5 mb-5" />
+
+            <div class="row">
+                <div class="col" id="import-container">
+                    <button class="btn btn-primary" type="button" id="import"><i class="bi bi-upload"></i> Import</button>
+                    <div class="alert alert-light mt-2 d-none" role="alert" id="browserTimestamp">Data not loaded.</div>
+                </div>
+                <div class="col d-none" id="download-container">
+                    <button class="btn btn-primary" type="button" id="export"><i class="bi bi-download"></i> Download</button>
+                    <div class="alert alert-light mt-2" role="alert" id="downloadTimestamp">Data not loaded.</div>
+                </div>
+            </div>
+
+            <a id="downloadAnchorElem" class="d-none"></a>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+        <script>
+            // Current match index (global)
+            var currentMatch = undefined;
+
+            // Check whether data is already in localStorage
+            const initCurrentMatch = function() {
+                data = JSON.parse(localStorage.getItem(projectName));
+                if (data != null) {
+                    document.getElementById('browserTimestamp').innerHTML = `<b>Last change: </b> ${data['lastChange']}`;
+                    document.getElementById('downloadTimestamp').innerHTML = `<b>Last download: </b> ${data['lastDownload']}`;
+                    // Look for latest unanswered question
+                    for (currentMatch = 0; currentMatch < data['numberOfMatches']; currentMatch++) {
+                        if (data['answer'][currentMatch] < 0) {
+                            break;
+                        }
+                    }
+                }
+
+                // Once all questions have been answered, show question 1.
+                if (currentMatch != undefined) {
+                    if (currentMatch == data['numberOfMatches']) {
+                        currentMatch = 0;
+                    }
+
+                    document.getElementById("move-container").classList.remove("d-none");
+                    document.getElementById("move-container").classList.add("d-flex");
+                    document.querySelector("#import-container .alert").classList.remove("d-none");
+                    document.getElementById("download-container").classList.remove("d-none");
+                }
+
+                showQuestion(currentMatch);
+            }
+
+            // Project name ensures people can use multiple questionaires on one computer/browser
+            const projectName = "Radina2024";
+            document.getElementById('pageTitle').innerHTML = projectName;
+            initCurrentMatch();
+            
+            document.getElementById('import').onclick = function() {
+                // Create temporary file dialog button
+                let input = document.createElement("input");
+                input.type = "file";
+                input.setAttribute("multiple", true);
+                input.setAttribute("accept", "*.json");
+                input.onchange = function (event) {
+                    // Read JSON into localStorage
+                    this.files[0].text().then(function(text) { 
+                        try {
+                            const result = JSON.parse(text);
+                            const formatted = JSON.stringify(result, null, 2);
+                            localStorage.setItem(projectName, formatted);
+                            initCurrentMatch();
+                        } catch (e) {
+                            alert("Invalid file, please upload a valid JSON file")
+                        }
+                    })
+                };
+                input.click();
+            };
+
+            document.getElementById('export').onclick = function() {
+                // Obtain date and time
+                date = new Date();
+                data['lastDownload'] = date.toLocaleString();
+                document.getElementById('downloadTimestamp').innerHTML = `<b>Last download: </b> ${data['lastDownload']}`;
+                localStorage.setItem(projectName, JSON.stringify(data));
+                
+                // Create and download JSON file
+                const datestring = getDateString(date);
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(localStorage.getItem(projectName));
+                const dlAnchorElem = document.getElementById('downloadAnchorElem');
+                dlAnchorElem.setAttribute("href", dataStr);
+                dlAnchorElem.setAttribute("download", `${projectName}_${datestring}.json`);
+                dlAnchorElem.click();
+            };
+
+            function getDateString(d) {
+                // Create Date Time String YYYY-MM-DD-HHMMSS
+                const separator = "_";
+                let timeString = d.getFullYear().toString() + separator;
+                timeString += (d.getMonth() + 1).toString().padStart(2, "0") + separator; 
+                timeString += d.getDate().toString().padStart(2, "0") + separator;
+                timeString += d.getHours().toString().padStart(2, "0") 
+                timeString += d.getMinutes().toString().padStart(2, "0");
+                timeString += d.getSeconds().toString().padStart(2, "0");
+                return timeString;
+            };
+
+            function selectFile() {
+                files = document.getElementById('selectFiles').change(function() {
+                    file = files[0];
+                });
+                return file;
+            };
+
+            function showQuestion(currentMatch) {
+                // If currentMatch is undefined, the data is not available in localStorage
+                if (currentMatch === undefined) {
+                    return;
+                }
+                
+                // Determine progress
+                let remaining = 0;
+                for (x of data['answer']) {
+                    if (x == -1) {
+                        remaining ++;
+                    }
+                }
+
+                // Show current progress
+                let progress = Math.round(((data['numberOfMatches'] - remaining) / data['numberOfMatches']) * 100);
+                let progressBar = document.querySelector('.progress-bar');
+                progressBar.setAttribute("aria-valuenow", progress);
+                progressBar.style.width = `${progress}%`
+
+                // Show current Match question
+                document.getElementById('question').innerHTML = `Please indicate the best match to: <b>${data['data'][currentMatch][0]}</b>`;
+
+                // Show current Match answers
+                let innerHTML = '';
+                let isChecked = '';
+                for (let i = 1; i < data['data'][currentMatch].length; i++) {
+                    if (data['answer'][currentMatch] == i) {
+                        isChecked = ' checked';
+                    } else {
+                        isChecked = '';
+                    }
+                    innerHTML += `<div class="form-check">
+                                        <input class="form-check-input" type="radio" name="answers" id="option${i}"${isChecked}>
+                                        <label class="form-check-label" for="option${i}">
+                                            ${data['data'][currentMatch][i]}
+                                        </label>
+                                    </div>`;
+                }
+                if (data['answer'][currentMatch] == -1 || data['answer'][currentMatch] == (data['data'].length + 1)) {
+                    isChecked = ' checked';
+                } else {
+                    isChecked = '';
+                }
+                innerHTML += `<div class="form-check">
+                                    <input class="form-check-input" type="radio" name="answers" id="option${data['data'][currentMatch].length}"${isChecked}>
+                                    <label class="form-check-label" for="option${data['data'][currentMatch].length}">
+                                        None of the above
+                                    </label>
+                                </div>`;
+                document.getElementById('answers').innerHTML = innerHTML;
+            };
+
+            function changeQuestion(delta) {
+                // Update answer array with current answer
+                const answers = document.getElementsByName('answers');
+                let answer_idx = 1;
+                for (let answer of answers) {
+                    if (answer.checked) {
+                        break;
+                    }
+                    answer_idx ++;
+                }
+                data['answer'][currentMatch] = answer_idx;
+                
+                // Update the browser timestamp value
+                date = new Date();
+                data['lastChange'] = date.toLocaleString();
+                document.getElementById('browserTimestamp').innerHTML = `<b>Last change: </b> ${data['lastChange']}`;
+
+                // Save update to localStorage
+                localStorage.setItem(projectName, JSON.stringify(data));
+
+                // Continue to follow up question
+                currentMatch += delta;
+                if (currentMatch < 0) {
+                    currentMatch = data['numberOfMatches'] - 1;
+                } else if (currentMatch == data['numberOfMatches']) {
+                    currentMatch = 0;
+                }
+                showQuestion(currentMatch);
+            };
+        </script>
+    </body>
+</html>

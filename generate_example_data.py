@@ -9,11 +9,12 @@ data.append(['Noot', 'Aap', 'Noot', 'Mies'])
 data.append(['Mies', 'Aap', 'Noot', 'Mies'])
 
 overall['data'] = data
+overall['project'] = 'example'
 overall['answer'] = [-1] * len(data)
 overall['numberOfMatches'] = len(data)
 overall['lastChange'] = time.ctime()
 overall['lastDownload'] = time.ctime()
 
-with open('example.json', 'w') as f:
+with open(f'{overall["project"]}.json', 'w') as f:
     json.dump(overall, f)
     

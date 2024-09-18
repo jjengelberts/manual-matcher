@@ -91,6 +91,7 @@
                     this.files[0].text().then(function(text) { 
                         try {
                             const result = JSON.parse(text);
+                            projectName = result['project'];
                             const formatted = JSON.stringify(result, null, 2);
                             localStorage.setItem(projectName, formatted);
                             initCurrentMatch();

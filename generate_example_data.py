@@ -15,16 +15,13 @@ data.append(['Mies', 'Aap', 'Noot', 'Mies'])
 # The dataset structure is as follows:
 # 1. data - the data as structured above
 # 2. project - a project name, preferable a string without spaces
-# 3. answer - the answer list. It contains the following values:
-#    -1 - for non answered questions
-#    0, 1, 2 ... (n - 1) - chosen option 0 being the first possibility, (n - 1) the last
-#    n - the answer "None of the above" has been chosen
-# 4. numberOfMatches - length of the data list
-# 5. lastChange & lastDownload - used inside the tool to show the user the last change & download
+# 3. answer - the answer list. It contains a list of lists with the following values:
+#    [0, 1, 2 ... (n - 1)] - chosen options: 0 being the first possibility, (n - 1) the last
+#    [n] - the answer "None of the above" has been chosen
+# 4. lastChange & lastDownload - used inside the tool to show the user the last change & download
 dataset['data'] = data
 dataset['project'] = 'example'
-dataset['answer'] = [-1] * len(data)
-dataset['numberOfMatches'] = len(data)
+dataset['answer'] = [[]] * len(data)
 dataset['lastChange'] = time.ctime()
 dataset['lastDownload'] = time.ctime()
 

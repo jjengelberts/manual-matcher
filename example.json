@@ -1,1 +1,1 @@
-{"data": [["Aap", "Aap", "Noot", "Mies"], ["Noot", "Aap", "Noot", "Mies"], ["Mies", "Aap", "Noot", "Mies"]], "project": "example", "answer": [-1, -1, -1], "numberOfMatches": 3, "lastChange": "Wed Sep 18 12:17:24 2024", "lastDownload": "Wed Sep 18 12:17:24 2024"}
+{"data": [["Aap", "Aap", "Noot", "Mies"], ["Noot", "Aap", "Noot", "Mies"], ["Mies", "Aap", "Noot", "Mies"]], "project": "example", "answer": [[], [], []], "lastChange": "Mon Sep 23 14:47:41 2024", "lastDownload": "Mon Sep 23 14:47:41 2024"}

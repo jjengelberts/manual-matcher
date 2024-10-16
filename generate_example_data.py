@@ -1,31 +1,29 @@
 import json
 import time
 
+project_name = 'example'
+
 # The data for this tool is a dictionary stored in JSON format
 dataset = dict()
 
-# The data should be a list of lists (lines)
-# The first element of each line is the string to be matched
-# The second, and furher, elements are the matching options to choose from
+# Add the data into a list
 data = list()
-data.append(['Aap', 'Aap', 'Noot', 'Mies'])
-data.append(['Noot', 'Aap', 'Noot', 'Mies'])
-data.append(['Mies', 'Aap', 'Noot', 'Mies'])
+data.append({'id': 0, 'keyword': 'Aap', 'suggestions': ['Aap', 'Noot', 'Mies'], 'matches': []})
+data.append({'id': 1, 'keyword': 'Noot', 'suggestions': ['Aap', 'Noot', 'Mies'], 'matches': []})
+data.append({'id': 2, 'keyword': 'Mies', 'suggestions': ['Aap', 'Noot', 'Mies'], 'matches': []})
 
-# The dataset structure is as follows:
-# 1. data - the data as structured above
-# 2. project - a project name, preferable a string without spaces
-# 3. answer - the answer list. It contains a list of lists with the following values:
-#    [0, 1, 2 ... (n - 1)] - chosen options: 0 being the first possibility, (n - 1) the last
-#    [n] - the answer "None of the above" has been chosen
-# 4. lastChange & lastDownload - used inside the tool to show the user the last change & download
+# Create metadata
+meta = list()
+meta.append({'label': 'project', 'value': 'example'})
+meta.append({'label': 'totalRecords', 'value': len(data)})
+meta.append({'label': 'lastChange', 'value': time.ctime()})
+meta.append({'label': 'lastDownload', 'value': time.ctime()})
+
+# Create the dataset from the data with some metadata
 dataset['data'] = data
-dataset['project'] = 'example'
-dataset['answer'] = [[]] * len(data)
-dataset['lastChange'] = time.ctime()
-dataset['lastDownload'] = time.ctime()
+dataset['meta'] = meta
 
 # Write the dataset to disk using the project name ("example" by default)
-with open(f'{dataset["project"]}.json', 'w') as f:
+with open(f'{project_name}.json', 'w') as f:
     json.dump(dataset, f)
     

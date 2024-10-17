@@ -21,23 +21,23 @@ document.getElementById('buttonPrevious').onclick = function() {
 }
 
 document.getElementById('import').onclick = function() {
-    // Button to load JSON file - stores data in variable rawData and calls insertData()
-    let input = document.createElement("input");
-    input.type = "file";
-    input.setAttribute("multiple", true);
-    input.setAttribute("accept", "*.json");
-    input.onchange = function (event) {
-        // Read JSON into localStorage
-        this.files[0].text().then(function(text) { 
-            try {
-                rawData = JSON.parse(text);
-                insertData(rawData);
-            } catch (e) {
-                alert("Invalid file, please upload a valid JSON file")
-            }
-        })
-    };
-    input.click();
+  // Button to load JSON file - stores data in variable rawData and calls insertData()
+  let input = document.createElement("input");
+  input.type = "file";
+  input.setAttribute("multiple", true);
+  input.setAttribute("accept", "*.json");
+  input.onchange = function (event) {
+    // Read JSON into localStorage
+    this.files[0].text().then(function(text) { 
+      try {
+        rawData = JSON.parse(text);
+        insertData(rawData);
+      } catch (e) {
+        alert("Invalid file, please upload a valid JSON file")
+      }
+    })
+  };
+  input.click();
 };
 
 document.getElementById('export').onclick = function() {
@@ -97,109 +97,101 @@ function getDateString(d) {
 };
 
 async function insertData(rawData) {
-    // Insert data into project database and update application metadata
-    let dbProject;
-    let dbMM;
-    let projectName;
+  // Insert data into project database and update application metadata
+  let dbProject;
+  let dbMM;
+  let projectName;
 
-    for (let line of rawData['meta']) {
-        if (line['label'] == 'project') {
-            projectName = line['value'];
-        }
+  for (let line of rawData['meta']) {
+    if (line['label'] == 'project') {
+      projectName = line['value'];
     }
-
-    const dbName = `manual_matcher_${projectName}`;
-    const isExisting = (await window.indexedDB.databases()).map(db => db.name).includes(dbName);
-    if (isExisting) {
-        if (!confirm(`${projectName} already exists. Overwrite?`)) {
-            return;
-        }
-    }
-    
-    // Update HTML with project name
-    document.getElementById("current-project").innerHTML = projectName;
-
-    let requestProject = indexedDB.open(dbName, 1);
-  
-    requestProject.onupgradeneeded = function(event) {
-      dbProject = event.target.result;
-      const dataStore = dbProject.createObjectStore("data", { keyPath: "id" });
-      const metaStore = dbProject.createObjectStore("meta", { keyPath: "label" });
-    };
-  
-    requestProject.onsuccess = function(event) {
-      dbProject = event.target.result;
-      // Database opened successfully
-
-      // Add data
-      let transaction = dbProject.transaction("data", "readwrite");
-      let objectStore = transaction.objectStore("data");
-  
-      document.getElementById("total-questions").innerHTML = rawData['data'].length;
-
-      for (let record of rawData['data']) {
-        let addRequest = objectStore.put(record);
-      
-        addRequest.onsuccess = function(event) {
-            // Data added succesfully
-        }
-        addRequest.onerror = function(event) {
-          console.log(`Cant add data: ${event}`);
-        }
-      }
-          
-      // Add metadata
-      transaction = dbProject.transaction("meta", "readwrite");
-      objectStore = transaction.objectStore("meta");
-  
-      for (let record of rawData['meta']) {
-        let addRequest = objectStore.put(record);
-      
-        addRequest.onsuccess = function(event) {
-            // Data added succesfully
-        }
-        addRequest.onerror = function(event) {
-          console.log(`Error added metadata ${event}`);
-        }
-      }
-    }
-
-    requestProject.onerror = function(event) {
-      // Error occurred while opening the database
-    };
-
-    // Update application metadata
-    let requestMM = indexedDB.open("manual_matcher", 1);
-  
-    requestMM.onsuccess = function(event) {
-      dbMM = event.target.result;
-      // Database opened successfully
-
-      // Add data
-      let transaction = dbMM.transaction("meta", "readwrite");
-      let objectStore = transaction.objectStore("meta");
-  
-      let initData = [{'label': 'lastProject', 'value': projectName}];
-
-      for (let record of initData) {
-        let updateRequest = objectStore.put(record);
-      
-        updateRequest.onsuccess = function(event) {
-            // Data added succesfully
-            console.log("Gegevens toegevoegd");
-        }
-
-        updateRequest.onerror = function(event) {
-          // Error
-          console.log(`Dit ging mis: ${event}`);
-        }
-      }
-    };
-  
-    requestMM.onerror = function(event) {
-      // Error occurred while opening the database
-    };
   }
+
+  const dbName = `manual_matcher_${projectName}`;
+  const isExisting = (await window.indexedDB.databases()).map(db => db.name).includes(dbName);
+  if (isExisting) {
+    if (!confirm(`${projectName} already exists. Overwrite?`)) {
+      return; 
+    }
+  }
+    
+  // Update HTML with project name
+  document.getElementById("current-project").innerHTML = projectName;
+  
+  let requestProject = indexedDB.open(dbName, 1);
+  
+  requestProject.onupgradeneeded = function(event) {
+    dbProject = event.target.result;
+    const dataStore = dbProject.createObjectStore("data", { keyPath: "id" });
+    const metaStore = dbProject.createObjectStore("meta", { keyPath: "label" });
+  };
+  
+  requestProject.onsuccess = function(event) {
+    dbProject = event.target.result;
+    // Database opened successfully
+
+    // Add data and meta data
+    let transaction = dbProject.transaction(["data", "meta"], "readwrite");
+    let objectData = transaction.objectStore("data");
+  
+    document.getElementById("total-questions").innerHTML = rawData['data'].length;
+
+    for (let record of rawData['data']) {
+      let addRequest = objectData.put(record);
+      
+      addRequest.onerror = function(event) {
+        console.log(`Cant add data: ${event}`);
+      }
+    }
+          
+    let objectMeta = transaction.objectStore("meta");
+  
+    for (let record of rawData['meta']) {
+      let addRequest = objectMeta.put(record);
+     
+      addRequest.onerror = function(event) {
+        console.log(`Error added metadata ${event}`);
+      }
+    }
+
+    transaction.oncomplete = function() {
+      // After completing insertion, startQuestion();
+      startQuestion();
+    }
+  }
+
+  requestProject.onerror = function(event) {
+    // Error occurred while opening the database
+  };
+
+  // Update application metadata
+  let requestMM = indexedDB.open("manual_matcher", 1);
+  
+  requestMM.onsuccess = function(event) {
+    dbMM = event.target.result;
+    // Database opened successfully
+
+    // Add data
+    let transaction = dbMM.transaction("meta", "readwrite");
+    let objectStore = transaction.objectStore("meta");
+  
+    let initData = [{'label': 'lastProject', 'value': projectName}];
+
+    for (let record of initData) {
+      let updateRequest = objectStore.put(record);
+      
+      updateRequest.onerror = function(event) {
+        // Error
+        console.log(`Update error in insertData: ${event}`);
+      }
+    }
+  };
+  
+  requestMM.onerror = function(event) {
+    // Error occurred while opening the database
+  };
+}
 
 async function initManualMatcher() {
   let db;
@@ -216,7 +208,7 @@ async function initManualMatcher() {
     const db = event.target.result;
     // Database opened successfully
 
-    // Add data
+    // Add meta data
     const transaction = db.transaction("meta", "readwrite");
     const objectStore = transaction.objectStore("meta");
   
@@ -298,8 +290,9 @@ async function startQuestion() {
           document.querySelector("#import-container .alert").classList.remove("d-none");
           document.getElementById("download-container").classList.remove("d-none");
           // Call the "regular" showQuestion() function
-          showQuestion(projectName, firstUnanswered);}
-    }
+          showQuestion(projectName, firstUnanswered);
+        }
+      }
     }
   }
 }
@@ -412,8 +405,6 @@ function changeQuestion(delta) {
 }
 
 function storeData(data) {
-  // Sometimes the next page has loaded before the timestamp was updated.
-  // Therefore, first!
   updateTimeStamp("lastChange");
   
   const projectName = document.getElementById("current-project").innerHTML;
@@ -442,14 +433,10 @@ function storeData(data) {
     let objectStore = transaction.objectStore("data");
 
     let updateRequest = objectStore.put(data);
-    
-    updateRequest.onsuccess = function(event) {
-        // Data added succesfully
-    }
 
     updateRequest.onerror = function(event) {
       // Error
-      console.log(`Dit ging mis: ${event}`);
+      console.log(`Update error in storeData: ${event}`);
     }
   };
 
